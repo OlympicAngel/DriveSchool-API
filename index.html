@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            background-color: rgb(162, 203, 237);
+            text-align: center;
+            direction: rtl;
+            font-family: Arial, Helvetica, sans-serif;
+            display: flex;
+            max-height: 100vh;
+            margin: 0;
+            padding: 0;
+            flex-direction: column;
+        }
+
+        .search {
+            padding: 1em;
+            background-color: #101a46b8;
+            color: #fff;
+            text-shadow: 0 0.2em #000;
+
+            >* {
+                font-weight: 700;
+                font-size: 2em;
+                border-radius: 0.3em;
+                line-height: 100%;
+            }
+
+            &>input,
+            &>select {
+                border: solid 0.12em rgb(111, 200, 255);
+
+                &:focus {
+                    border-color: lime;
+                    outline: none;
+                }
+            }
+        }
+
+        #content {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 1em;
+            gap: 2em;
+            overflow: auto;
+            direction: ltr;
+            justify-content: space-around;
+
+            &>div {
+                direction: rtl;
+                flex: 1;
+                display: block;
+                padding: 1em;
+                min-width: min(320px, 90vw);
+                max-width: 500px;
+                text-align: center;
+                background-color: #fff;
+                border-radius: 1em;
+                border-top: 0.4em solid rgb(0, 110, 255);
+                box-shadow: 0 1em 1em -1em #000;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-evenly;
+                gap: 1em;
+
+                &>* {
+                    flex: 1;
+                    height: auto;
+                    margin: 0;
+                }
+
+                & h3 {
+                    border-bottom: 0.1em solid #000;
+                    width: fit-content;
+                    margin: auto;
+                    padding: 0 1em;
+                }
+
+                & div {
+                    display: flex;
+                    width: 100%;
+                    justify-content: space-around;
+                    gap: 0.5em
+                }
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="search">
+        <label for="search">חיפוש:</label>
+        <input id="search" onkeyup="Render()" placeholder="הזן ערך לחיפוש" autocomplete="off" />
+        <label for="typeSelect">| חפש לפי </label>
+        <select id="typeSelect" onchange="Render()">
+
+        </select>
+    </div>
+    <div id="content">
+
+    </div>
+    <script>
+        var apiData = {
+            result: {
+                records: [{
+                    "_id": 1,
+                    "cod_ezor": 10,
+                    "ezor": "קרית ארבע",
+                    "cod_beit_sefer": 780,
+                    "shem_beit_sefer": "ארבע על 4",
+                    "cod_hiter": 5256,
+                    "menahel": "רמי דרורי",
+                    "ktovet": "מעלה אדומים הצור 61",
+                    "telefon": "",
+                    "prati": 0,
+                    "masa": 0,
+                    "traktor": 0,
+                    "ofnoa": 0,
+                    "otobus": 0,
+                    "grar": 0
+                }]
+            }
+        };
+        const apiURL = "https://data.gov.il/api/action/datastore_search?resource_id=3f06e2f2-e2ad-41ac-9665-37d0625537f2&limit=400";
+        async function getData() {
+            //then chaining - method
+            const res = await fetch(apiURL);
+            apiData = await res.json();
+
+            const options = { "shem_beit_sefer": "שם", "ezor": "איזור", "ktovet": "כתובת" };
+            let optHTML = "";
+            for (let key in options) {
+                let heName = options[key]
+                optHTML += `<option value="${key}">${heName}</option>`
+            }
+            typeSelect.innerHTML = optHTML;
+
+            Render()
+        }
+        getData();
+
+        function Render() {
+            search.value = search.value.replace(/[^א-ת0-9]/g, "")
+
+            const filterBy = typeSelect.options[typeSelect.selectedIndex].value;
+            const searchValue = search.value;
+            let filteredList = apiData.result.records.filter(entry => {
+                const finder = entry[filterBy].split(" ").find(word => word.startsWith(searchValue));
+                return finder
+            })
+            filteredList.sort((entry1, entry2) => {
+                return (entry1.shem_beit_sefer < entry2.shem_beit_sefer) ? -1 : 1
+            })
+
+
+            content.innerHTML = filteredList.length ? "" : "<div>לא נמצאו תוצאות לפי הגדרות החיפוש שהוזנו.</div>";
+            filteredList.forEach(entry => {
+                const div = document.createElement("div");
+                div.innerHTML = `<h3>בית ספר - ${entry.shem_beit_sefer}.</h3>
+                <div>
+                    <span>איזור: ${entry.ezor || "אין איזור"}</span>
+                    |
+                    <span>כתובת: ${entry.ktovet || "אין כתובת"}.</span>
+                </div>
+                <p>לפרטים: 
+                    ${entry.telefon || "אין טלפון"} - ${entry.menahel}
+                </p>
+                `
+
+                content.appendChild(div)
+            });
+        }
+
+    </script>
+</body>
+
+</html>
